@@ -1,9 +1,9 @@
-# Packages build/app (assembled by scripts/pack.ts) into a per-user Windows installer, a
+﻿# Packages build/app (assembled by scripts/pack.ts) into a per-user Windows installer, a
 # macOS disk image and zip, or a Linux AppImage and deb.
 # scripts/pack.ts runs electron-builder with build/app as the project directory, so relative paths here start
 # from build/app, and electron-builder takes the app's node_modules from build/app's npm install.
-appId: ai.pal.coopanion
-productName: Coopanion
+appId: club.yhagent.pet
+productName: 小小轩桌宠
 copyright: Copyright © 2026 Pal-AI-Lab
 electronVersion: 44.4.4
 # Electron locale codes for the languages in app/i18n/index.cjs.
@@ -24,15 +24,15 @@ files:
 # app), which the release workflow uploads
 publish:
   provider: github
-  owner: Pal-AI-Lab
-  repo: Coopanion
+  owner: Yangguangdashuaige
+  repo: YHagent-Pet
 win:
   # x64 or arm64, whichever scripts/pack.ts asks for
   target:
     - target: nsis
   icon: app/icons/icon.ico
   # the portable zip (COOPANION_CHANNEL=portable, scripts/pack.ts asks for the zip target); the installer is named under nsis
-  artifactName: Coopanion-${version}-win-${arch}-portable.${ext}
+  artifactName: YHagent-Pet-${version}-win-${arch}-portable.${ext}
 # Asks where to install. Every file the app writes stays under that directory (data in data\),
 # so the start-menu entry, which Windows keeps under AppData, is not created.
 nsis:
@@ -42,7 +42,7 @@ nsis:
   include: nsis.nsh
   createDesktopShortcut: true
   createStartMenuShortcut: false
-  shortcutName: Coopanion
+  shortcutName: 小小轩桌宠
   # the installer's own pages follow the system language among these (NSIS has one Spanish, es_ES);
   # the app's language is the app's own setting
   installerLanguages: [en_US, zh_CN, zh_TW, ja_JP, ko_KR, fr_FR, de_DE, es_ES, pt_BR, it_IT, ru_RU]
@@ -51,7 +51,7 @@ nsis:
   runAfterFinish: true
   deleteAppDataOnUninstall: false
   # the x64 installer; scripts/pack.ts names the Windows on Arm one Coopanion-Setup-<version>-arm64.exe
-  artifactName: Coopanion-Setup-${version}.exe
+  artifactName: YHagent-Pet-Setup-${version}.exe
 # No Developer ID: the app is signed ad hoc ("-"), which Apple silicon needs to launch it at all;
 # the first open goes through Privacy & Security → Open Anyway (see the README). It lives in the
 # menu bar (LSUIElement), not the Dock; its data is in ~/Library/Application Support/Coopanion.
@@ -64,7 +64,7 @@ mac:
   category: public.app-category.lifestyle
   icon: app/icons/icon.png
   identity: "-"
-  artifactName: Coopanion-${version}-mac-${arch}.${ext}
+  artifactName: YHagent-Pet-${version}-mac-${arch}.${ext}
   hardenedRuntime: false
   gatekeeperAssess: false
   extendInfo:
@@ -84,11 +84,11 @@ linux:
       arch: [x64]
   icon: app/icons/icon.png
   category: Utility
-  executableName: coopanion
+  executableName: yhagent-pet
   synopsis: An AI companion pet on your desktop
   maintainer: Pal-AI-Lab <phantivia@gmail.com>
   # ${arch} would read x86_64 for the AppImage and amd64 for the deb
-  artifactName: Coopanion-${version}-linux-x64.${ext}
+  artifactName: YHagent-Pet-${version}-linux-x64.${ext}
   desktop:
     entry:
       StartupWMClass: Coopanion

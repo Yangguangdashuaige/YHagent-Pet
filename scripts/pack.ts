@@ -164,6 +164,28 @@ for (const name of WORKSPACE) {
 }
 writeFileSync(join(OUT, 'package.json'), JSON.stringify(manifest, null, 2));
 if (process.platform === 'win32') await addMinGit(join(OUT, 'mingit'));
+
+// YHagent-Pet: 预置端点配置。仓库根的 .env.build（不入库）有 YHAGENT_BASE_URL 时,
+// 生成 build/app/preset.json 随包分发——core/seed.ts 首装读到它即创建连到 YHagent
+// 服务端的端点(内置访问码)。缺 YHAGENT_BASE_URL 时不出 preset.json,应用退回上游
+// 的"选模型服务填 Key"首启流程,便于无预置的开发运行。
+{
+  const envBuild = join(ROOT, '.env.build');
+  const pick = (key: string): string => {
+    if (!existsSync(envBuild)) return '';
+    const m = new RegExp(`^[ \\t]*${key}[ \\t]*=[ \\t]*(\\S+)[ \\t]*$`, 'm').exec(readFileSync(envBuild, 'utf8'));
+    return m ? m[1] : '';
+  };
+  const baseUrl = pick('YHAGENT_BASE_URL');
+  const token = pick('YHAGENT_TOKEN');
+  const model = pick('YHAGENT_MODEL') || 'yhagent-delta';
+  if (baseUrl && token) {
+    writeFileSync(join(OUT, 'preset.json'), JSON.stringify({ baseUrl, token, model }, null, 2) + '\n');
+    console.log(`preset endpoint written (${baseUrl})`);
+  } else {
+    console.log('no .env.build preset (YHAGENT_BASE_URL/YHAGENT_TOKEN): shipping without a preset endpoint');
+  }
+}
 console.log(`app directory ready: ${relative(ROOT, OUT)}`);
 
 const target = process.platform === 'darwin' ? '--mac' : process.platform === 'linux' ? '--linux' : '--win';

@@ -32,7 +32,6 @@ import { geminiInlineMime } from './gemini/wire.ts';
 import { vendorPrices } from './pricing.ts';
 import { VendorResponses } from './responses.ts';
 import { cooText } from './strings.ts';
-import { plainRemote } from './address.ts';
 import { PROTOCOLS, VENDORS, effortOf, locate, siteOf, vendorOf, vendorName, type Language as VendorLanguage, type Protocol } from './vendors.ts';
 
 /** vendors.ts spells out Cortico's `Language`; this stops compiling when the two differ. */
@@ -107,7 +106,10 @@ export const COO = {
     const { protocol } = cooOptions(entry);
     if (protocol !== undefined && !PROTOCOLS.includes(protocol))
       throw new Error(cooText(language).badProtocol(PROTOCOLS.join(' / ')));
-    if (plainRemote(entry.baseUrl)) throw new Error(cooText(language).httpRemote);
+    // YHagent-Pet: 允许公网 http 端点。YHagent 生产是未备案域名的纯 IP 直连
+    // (http://<ip>:8080),上游的公网 http 拦截会挡住预置端点;访问码与网页版
+    // 直连同风险。域名备案后可恢复 plainRemote 校验。
+    // if (plainRemote(entry.baseUrl)) throw new Error(cooText(language).httpRemote);
   },
   // a Gemini endpoint marked multimodal also takes audio, video and documents
   accepts: (entry, _spec, mime) => entry.multimodal === true
@@ -115,12 +117,7 @@ export const COO = {
   prices: (entry, _request, at) => vendorPrices(vendorOf(entry.baseUrl)?.id, at.startedAt),
   contextOverflow,
   create(name: string, entry: LLMProviderEntry, host): ProviderInstance {
-    if (plainRemote(entry.baseUrl)) {
-      // an endpoint saved before the rule stays listed; each request fails before anything is sent
-      const client = new VendorResponses({ baseUrl: entry.baseUrl, log: host.log }, {});
-      client.respond = () => Promise.reject(new Error(cooText('en').httpRemote));
-      return { client };
-    }
+    // YHagent-Pet: 公网 http 端点放行（见 validateEntry 的同名注释）。
     const apiKey = entry.secret ? host.secret(entry.secret) : undefined;
     const current = () => host.currentEntry?.() ?? entry;
     const located = locate(entry.baseUrl);

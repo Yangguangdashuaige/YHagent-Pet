@@ -5,3 +5,7 @@ scratch/
 *.log
 promo/assets/bgm.mp3
 packages/cortico-world-desktop-pet/scripts/speech-bank/.cache/
+
+# YHagent-Pet 预置端点构建值（真实服务器地址与访问码，严禁入库）
+.env.build
+

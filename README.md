@@ -1,4 +1,20 @@
 <!-- Owner: app/main.cjs, core/companion.ts, console/index.ts. -->
+
+# YHagent-Pet（小小轩桌宠）
+
+本仓库是 [Coopanion](https://github.com/Pal-AI-Lab/Coopanion) 的 fork，作为 **YHagent**（三角洲行动游戏助手，Go 服务端）的桌宠客户端发行版。感谢 Pal-AI-Lab 的开源工作；上游协议为 AGPL-3.0，本 fork 同样以 AGPL-3.0 开源。
+
+**相对上游的修改点**（其余行为与上游一致，详细改动见各文件内 `YHagent-Pet:` 注释）：
+
+1. **预置端点**（`core/seed.ts` + `scripts/pack.ts`）：构建时从根目录 `.env.build`（不入库）生成 `preset.json` 随包分发；首次安装自动创建连到 YHagent 服务端 OpenAI 兼容门面（`POST /v1/chat/completions`）的端点并内置访问码，首启引导跳过"选模型服务"一步——装完即用。无 `.env.build` 时保持上游原行为。
+2. **允许公网 http 端点**（`packages/cortico-provider-coo/src/index.ts`）：YHagent 生产为未备案域名的纯 IP 直连，上游的公网 http 拦截会挡住预置端点，故在 fork 内放行（与直连网页版同风险；域名备案后可恢复校验）。
+3. **品牌与人格**（`electron-builder.yml`、`package.json`、`app/i18n/`、`app/icons/`、`core/seed/persona/coo.zh.md`）：产品名"小小轩桌宠"，应用图标与宠物人格改为 YHagent 的小小轩人设；更新通道指向本仓库的 Releases。
+
+构建：`pnpm install && pnpm run build:installer`（Windows 出 `dist/YHagent-Pet-Setup-<版本>.exe`）。真实服务器地址与访问码只进 `.env.build`（已 gitignore），公开仓库不含任何密钥。
+
+---
+
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">

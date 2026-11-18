@@ -11,7 +11,7 @@ import { EARLIER_PERSONAS } from './seed-history.ts';
 
 export const DEPLOYMENT = 'companion';
 export const CONSOLE_PORT = 17788;
-export const DISPLAY_NAME = 'Coo';
+export const DISPLAY_NAME = '小小轩';
 /** The provider module of the app's endpoints (cortico-provider-coo). */
 const MODULE = 'coo';
 /** The module the endpoints of versions up to 0.1.2 name; it became `coo`. */
@@ -19,6 +19,48 @@ const OLD_MODULE = 'deepseek';
 /** When computer use asks first (`worlds.desktop-pet.cua.permission`): new installs get it written out, so a config without it is from before and keeps the default it had. */
 const CUA_ASK = 'ask-once';
 const OLD_CUA_ASK = 'ask-each-turn';
+
+// ---- YHagent-Pet 预置端点 ----
+/** 预置端点名（providers/ 目录与 config.activeProvider 用）。 */
+const PRESET_NAME = 'yhagent';
+/** 预置端点的密钥名：secretReader 在端点目录 .env / 进程环境里按名取值。 */
+const PRESET_SECRET = 'YHAGENT_TOKEN';
+/** 打包进 app 根的预置配置（scripts/pack.ts 生成；不存在 = 未预置的开发运行）。 */
+interface Preset {
+  /** YHagent 服务端 OpenAI 兼容门面基地址，如 https://yhagent.club/v1 或 http://<ip>:8080/v1。 */
+  baseUrl: string;
+  /** 内置访问码（= 服务端 SERVER_TOKEN），写入端点 .env，不进 git。 */
+  token: string;
+  /** 对外模型名（门面 /v1/models 返回值；客户端下拉显示用）。 */
+  model: string;
+  /** .env 密钥名（默认 YHAGENT_TOKEN，一般不用改）。 */
+  secret?: string;
+}
+
+/** 读 <app root>/preset.json；缺失或字段不全时返回 null（走上游默认行为）。 */
+function readPreset(): Preset | null {
+  try {
+    const file = fileURLToPath(new URL('../preset.json', import.meta.url));
+    const parsed = JSON.parse(readTextFile(file)) as Partial<Preset>;
+    if (!parsed.baseUrl || !parsed.token) return null;
+    return { baseUrl: parsed.baseUrl, token: parsed.token, model: parsed.model || 'yhagent-delta', secret: parsed.secret || PRESET_SECRET };
+  } catch {
+    return null;
+  }
+}
+
+/** 预置端点的 provider entry：coo 模块 + chat 协议 + 多模态（截图/pet_see_self 可用）。 */
+function presetEntry(preset: Preset): Record<string, unknown> {
+  return {
+    kind: MODULE,
+    baseUrl: preset.baseUrl,
+    secret: preset.secret,
+    spec: { model: preset.model, thinking: true, reasoningEffort: 'high', maxTokens: 8192 },
+    multimodal: true,
+    pricing: [],
+    options: { protocol: 'chat' },
+  };
+}
 const SEED_DIR = fileURLToPath(new URL('./seed/', import.meta.url));
 /**
  * The self-descriptions Coo can start from, in the order the introduction offers them: Coo as it ships, four
@@ -41,6 +83,11 @@ export const personaFile = (id: PersonaId, language: Language) => join(SEED_DIR,
  * included, moves to `worlds.desktop-pet.cua`, a config without a computer-use `permission`, which
  * keeps the `ask-each-turn` it had before new installs got `ask-once`, and the keys Cortico 0.2.0 renamed
  * (`moveTerminalToConsole`).
+ *
+ * YHagent-Pet 预置端点：`<app root>/preset.json`（scripts/pack.ts 从不入库的 .env.build 生成）存在时，
+ * 新安装直接创建连到 YHagent 服务端 OpenAI 兼容门面的端点（内置访问码，protocol=chat，
+ * multimodal 截图可用），引导第 5 步见模型已连接自动跳过——玩家装完即用。
+ * preset.json 不存在时保持上游行为（选模型服务填 Key），便于无预置的开发运行。
  */
 export function seed(home: string, language: Language): void {
   const deploy = join(home, DEPLOYMENT);
@@ -51,7 +98,22 @@ export function seed(home: string, language: Language): void {
   write(join(deploy, 'deployment.json'), { bot: 'cormini' });
   const config = join(deploy, 'config.json');
   const upgrading = existsSync(config);
-  if (!upgrading) {
+  const preset = readPreset();
+  if (!upgrading && preset) {
+    // YHagent 预置端点：一次写全（端点条目 + 内置访问码 + 激活），首启引导不再问模型服务
+    const endpoint = join(home, 'providers', PRESET_NAME);
+    mkdirSync(endpoint, { recursive: true });
+    writeFileSync(join(endpoint, 'config.json'), JSON.stringify(presetEntry(preset), null, 2) + '\n');
+    writeFileSync(join(endpoint, '.env'), `${preset.secret}=${preset.token}\n`);
+    write(config, {
+      displayName: DISPLAY_NAME,
+      language,
+      activeProvider: PRESET_NAME,
+      providerSchemaVersion: 3,
+      web: { port: CONSOLE_PORT },
+      worlds: { 'desktop-pet': { cua: { permission: CUA_ASK } } },
+    });
+  } else if (!upgrading) {
     const vendor = firstVendor(language), region = defaultRegion(language), endpoint = join(home, 'providers', endpointName(vendor, region));
     mkdirSync(endpoint, { recursive: true });
     write(join(endpoint, 'config.json'), vendorEntry(vendor, vendor.model, region));
